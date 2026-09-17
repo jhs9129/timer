@@ -27,8 +27,15 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
+    """Request-scoped session: commits when the handler succeeds, rolls back otherwise."""
     async with SessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except BaseException:
+            await session.rollback()
+            raise
+        else:
+            await session.commit()
 
 
 async def check_db() -> bool:

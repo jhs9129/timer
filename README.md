@@ -19,3 +19,5 @@ make check      # 커밋 전 필수
 ```
 
 요구: Python 3.11, uv, Node 22, Docker.
+
+개발 환경에서는 Google OAuth 설정 없이 로그인 화면의 "개발용 로그인"(이메일만)으로 들어갈 수 있다. 운영에서는 `APP_ENV=production`이라 이 경로가 404다.

@@ -1,6 +1,8 @@
 # 03. 데이터 모델
 
-모든 `*_at`은 `timestamptz`(UTC). PK는 `uuid`(v7 권장, 애플리케이션 생성). `local_date`는 사용자 타임존 + 04:00 경계로 서버가 계산한 `date`.
+모든 `*_at`은 `timestamptz`(UTC). PK는 `uuid`(현재 v4, 애플리케이션 생성. Python 3.11 표준 라이브러리에 v7이 없어 보류). `local_date`는 사용자 타임존 + 04:00 경계로 서버가 계산한 `date`. 상태를 가진 테이블은 `updated_at`을 두고 서비스가 갱신한다.
+
+실제 스키마의 원본은 `apps/api/app/models/`와 `apps/api/alembic/versions/`다. 이 문서는 의도를 설명하고, 둘이 어긋나면 코드가 맞다.
 
 ## 사용자
 

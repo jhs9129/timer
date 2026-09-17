@@ -36,7 +36,9 @@ make check      # ruff + mypy + pytest + eslint + tsc + vitest. 커밋 전 필�
 make test       # 테스트만
 ```
 
-DB가 필요한 테스트는 `REQUIRE_DB=1`일 때만 실행된다. CI는 Postgres 서비스를 띄우고 이 값을 설정한다.
+API 테스트는 실제 Postgres를 요구한다. 로컬은 `make db-up` 후 `village_test` DB를 테스트가 스스로 만들고 마이그레이션한다. CI는 Postgres 서비스 컨테이너를 띄운다. DB 없이 "통과"하는 테스트는 없다.
+
+시간은 `app/services/clock.py`의 `now()` 하나로만 읽는다. 테스트는 `fake_clock` 픽스처로 이 함수를 바꿔 시간을 제어한다. `datetime.now()`를 직접 호출하지 않는다.
 
 ## 절대 규칙
 
@@ -44,7 +46,7 @@ DB가 필요한 테스트는 `REQUIRE_DB=1`일 때만 실행된다. CI는 Postgr
 2. **상태 변경은 이벤트를 동반한다.** 도메인 테이블을 쓰는 트랜잭션 안에서 `events`에 한 행을 넣는다. 이벤트 없는 상태 변경은 리뷰에서 거부한다.
 3. **보상 상수는 코드에 박지 않는다.** RATE, DAILY_CAP, streak 배수는 `reward_config`에서 읽는다.
 4. **유료 서비스를 추가하지 않는다.** 새 외부 서비스는 무료 구간 한도와 카드 요구 여부를 `docs/04-deployment.md`에 먼저 기록하고 ADR로 결정한다.
-5. **테스트를 스킵·비활성화해서 녹색을 만들지 않는다.** 실패 원인을 고친다. `REQUIRE_DB` 게이트만 예외이며 새 게이트를 추가하지 않는다.
+5. **테스트를 스킵·비활성화해서 녹색을 만들지 않는다.** 실패 원인을 고친다. 조건부 스킵 게이트를 추가하지 않는다.
 6. **타임스탬프는 전부 UTC `timestamptz`.** 사용자 로컬 날짜(`local_date`)는 프로필 타임존과 04:00 경계로 서버가 계산해 저장한다.
 7. **마이그레이션은 Alembic으로만.** autogenerate 결과를 사람이 읽고 다듬은 뒤 커밋한다. 모델과 마이그레이션이 어긋난 채 커밋하지 않는다.
 8. **마을 소유자는 `owner_type + owner_id`.** `user_id`를 마을이나 인벤토리에 직접 걸지 않는다.
