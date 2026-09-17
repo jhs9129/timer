@@ -1,0 +1,26 @@
+# env
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# data (M4)
+data/**/*.parquet
+data/**/*.duckdb
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
