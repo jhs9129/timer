@@ -1,41 +1,54 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
-import { fetchHealth, type Health } from './api'
+import { ApiError, api, type Me } from './api'
+import { Focus } from './Focus'
+import { Login } from './Login'
 
-type State = { kind: 'loading' } | { kind: 'ok'; health: Health } | { kind: 'error'; message: string }
+type State =
+  | { kind: 'loading' }
+  | { kind: 'anonymous' }
+  | { kind: 'ready'; me: Me }
+  | { kind: 'error'; message: string }
 
 export function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
-  useEffect(() => {
-    let cancelled = false
-    fetchHealth()
-      .then((health) => {
-        if (!cancelled) setState({ kind: 'ok', health })
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setState({ kind: 'error', message: err instanceof Error ? err.message : String(err) })
-      })
-    return () => {
-      cancelled = true
+  const loadMe = useCallback(async () => {
+    try {
+      const me = await api.me()
+      setState({ kind: 'ready', me })
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) setState({ kind: 'anonymous' })
+      else setState({ kind: 'error', message: err instanceof Error ? err.message : String(err) })
     }
   }, [])
 
-  return (
-    <main>
-      <h1>My Little Village</h1>
-      <p>API 상태: {describe(state)}</p>
-    </main>
-  )
-}
+  useEffect(() => {
+    void loadMe()
+  }, [loadMe])
 
-function describe(state: State): string {
   switch (state.kind) {
     case 'loading':
-      return '확인 중'
-    case 'ok':
-      return `${state.health.status} (db: ${state.health.db})`
+      return <main>불러오는 중</main>
+    case 'anonymous':
+      return <Login onLoggedIn={loadMe} />
     case 'error':
-      return `연결 실패 (${state.message})`
+      return (
+        <main>
+          <p>API에 연결할 수 없습니다 ({state.message})</p>
+          <button onClick={() => void loadMe()}>다시 시도</button>
+        </main>
+      )
+    case 'ready':
+      return (
+        <Focus
+          me={state.me}
+          refreshMe={loadMe}
+          onLogout={async () => {
+            await api.logout()
+            setState({ kind: 'anonymous' })
+          }}
+        />
+      )
   }
 }

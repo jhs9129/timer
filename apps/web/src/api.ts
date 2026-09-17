@@ -1,12 +1,104 @@
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
 export interface Health {
   status: string
   db: string
 }
 
-export async function fetchHealth(): Promise<Health> {
-  const res = await fetch(`${API_URL}/health`)
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return (await res.json()) as Health
+export interface Me {
+  id: string
+  email: string
+  display_name: string
+  timezone: string
+  balance: number
+  streak_days: number
+  village: { slug: string; name: string; xp: number }
 }
+
+export type SessionStatus = 'running' | 'paused' | 'ended' | 'completed' | 'abandoned'
+
+export interface Session {
+  id: string
+  mode: 'stopwatch' | 'countdown'
+  target_seconds: number | null
+  intent: string | null
+  status: SessionStatus
+  pause_reason: 'user' | 'idle' | 'timeout' | null
+  local_date: string
+  started_at: string
+  ended_at: string | null
+  focused_seconds: number
+  running_since: string | null
+  has_retro: boolean
+}
+
+export interface Day {
+  date: string
+  sessions: Session[]
+  focused_seconds: number
+  coins_earned: number
+}
+
+export interface RetroInput {
+  mood: 1 | 2 | 3 | 4
+  intent_match?: 'yes' | 'partly' | 'no'
+  tags?: string[]
+  note?: string
+}
+
+export interface RetroResult {
+  retro: { id: string; mood: number; intent_match: string | null; tags: string[]; note: string | null }
+  reward: { coins: number; base: number; multiplier: number; cap_hit: boolean; streak_days: number }
+  session: Session
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    ...init,
+  })
+  if (res.status === 204) return undefined as T
+  const body = (await res.json().catch(() => null)) as
+    | { error?: { code: string; message: string } }
+    | T
+    | null
+  if (!res.ok) {
+    const err = (body as { error?: { code: string; message: string } } | null)?.error
+    throw new ApiError(res.status, err?.code ?? 'http_error', err?.message ?? `HTTP ${res.status}`)
+  }
+  return body as T
+}
+
+const post = <T>(path: string, data?: unknown) =>
+  request<T>(path, { method: 'POST', body: data === undefined ? undefined : JSON.stringify(data) })
+
+export const api = {
+  health: () => request<Health>('/health'),
+  me: () => request<Me>('/me'),
+  patchMe: (data: { timezone?: string; display_name?: string }) =>
+    request<Me>('/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  devLogin: (email: string) => post<Me>('/auth/dev-login', { email }),
+  logout: () => post<void>('/auth/logout'),
+  current: () => request<Session | undefined>('/sessions/current'),
+  start: (data: { mode: 'stopwatch' | 'countdown'; target_seconds?: number; intent?: string }) =>
+    post<Session>('/sessions', data),
+  heartbeat: (id: string) => post<Session>(`/sessions/${id}/heartbeat`),
+  pause: (id: string, reason: 'user' | 'idle') => post<Session>(`/sessions/${id}/pause`, { reason }),
+  resume: (id: string) => post<Session>(`/sessions/${id}/resume`),
+  stop: (id: string) => post<Session>(`/sessions/${id}/stop`),
+  retro: (id: string, data: RetroInput) => post<RetroResult>(`/sessions/${id}/retro`, data),
+  day: (date?: string) => request<Day>(`/sessions${date ? `?date=${date}` : ''}`),
+}
+
+export const googleLoginUrl = `${API_URL}/auth/google/start`
