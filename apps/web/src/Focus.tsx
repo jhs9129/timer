@@ -49,8 +49,8 @@ export function Focus({ me, refreshMe, onLogout }: Props) {
   return (
     <main>
       <header>
-        <strong>{me.display_name}</strong> · 코인 {me.balance} · 연속 {me.streak_days}일 · 마을 XP{' '}
-        {me.village.xp}
+        <strong>{me.display_name}</strong> · 코인 {me.balance} · 연속 {me.streak_days}일 · 마을 Lv.
+        {me.village.level} (XP {me.village.xp}) <a href="/village">마을 가기</a>
         <button onClick={() => void onLogout()}>로그아웃</button>
       </header>
 

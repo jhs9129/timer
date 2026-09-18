@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api, type Me } from './api'
 import { Focus } from './Focus'
 import { Login } from './Login'
+import { PublicVillage } from './village/PublicVillage'
+import { Village } from './village/Village'
 
 type State =
   | { kind: 'loading' }
@@ -10,7 +12,21 @@ type State =
   | { kind: 'ready'; me: Me }
   | { kind: 'error'; message: string }
 
-export function App() {
+/** Minimal routing without a router: focus mode is the default screen; the village is separate. */
+export function route(pathname: string): { page: 'focus' } | { page: 'village' } | { page: 'public'; slug: string } {
+  const match = /^\/v\/([^/]+)\/?$/.exec(pathname)
+  if (match) return { page: 'public', slug: decodeURIComponent(match[1]) }
+  if (pathname === '/village' || pathname === '/village/') return { page: 'village' }
+  return { page: 'focus' }
+}
+
+export function App({ pathname = window.location.pathname }: { pathname?: string }) {
+  const current = route(pathname)
+  if (current.page === 'public') return <PublicVillage slug={current.slug} />
+  return <Authed page={current.page} />
+}
+
+function Authed({ page }: { page: 'focus' | 'village' }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
   const loadMe = useCallback(async () => {
@@ -40,6 +56,7 @@ export function App() {
         </main>
       )
     case 'ready':
+      if (page === 'village') return <Village />
       return (
         <Focus
           me={state.me}

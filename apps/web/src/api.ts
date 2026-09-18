@@ -22,7 +22,7 @@ export interface Me {
   timezone: string
   balance: number
   streak_days: number
-  village: { slug: string; name: string; xp: number }
+  village: { slug: string; name: string; xp: number; level: number }
 }
 
 export type SessionStatus = 'running' | 'paused' | 'ended' | 'completed' | 'abandoned'
@@ -99,6 +99,67 @@ export const api = {
   stop: (id: string) => post<Session>(`/sessions/${id}/stop`),
   retro: (id: string, data: RetroInput) => post<RetroResult>(`/sessions/${id}/retro`, data),
   day: (date?: string) => request<Day>(`/sessions${date ? `?date=${date}` : ''}`),
+}
+
+export interface Item {
+  code: string
+  name: string
+  category: 'ground' | 'tree' | 'prop' | 'building'
+  layer: 'ground' | 'object'
+  price: number
+  width: number
+  height: number
+  unlock_level: number
+}
+
+export interface InventoryEntry {
+  item_code: string
+  qty: number
+}
+
+export interface Placement {
+  id: string
+  item_code: string
+  category: Item['category']
+  layer: Item['layer']
+  x: number
+  y: number
+  rotation: number
+  width: number
+  height: number
+}
+
+export interface PublicVillage {
+  slug: string
+  name: string
+  width: number
+  height: number
+  level: number
+  xp: number
+  placements: Placement[]
+}
+
+export interface Village extends PublicVillage {
+  inventory: InventoryEntry[]
+  balance: number
+  next_level_xp: number | null
+}
+
+export const villageApi = {
+  mine: () => request<Village>('/villages/me'),
+  rename: (name: string) => request<Village>('/villages/me', { method: 'PATCH', body: JSON.stringify({ name }) }),
+  public: (slug: string) => request<PublicVillage>(`/v/${encodeURIComponent(slug)}`),
+  items: () => request<Item[]>('/shop/items'),
+  purchase: (item_code: string) =>
+    post<{ inventory: InventoryEntry[]; balance: number }>('/shop/purchase', { item_code }),
+  place: (item_code: string, x: number, y: number, rotation = 0) =>
+    post<Placement>('/villages/me/placements', { item_code, x, y, rotation }),
+  move: (id: string, x: number, y: number, rotation?: number) =>
+    request<Placement>(`/villages/me/placements/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ x, y, rotation }),
+    }),
+  remove: (id: string) => request<void>(`/villages/me/placements/${id}`, { method: 'DELETE' }),
 }
 
 export const googleLoginUrl = `${API_URL}/auth/google/start`

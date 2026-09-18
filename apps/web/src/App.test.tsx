@@ -11,7 +11,7 @@ const ME: Me = {
   timezone: 'Asia/Seoul',
   balance: 42,
   streak_days: 3,
-  village: { slug: 'abc', name: 'Jane의 마을', xp: 120 },
+  village: { slug: 'abc', name: 'Jane의 마을', xp: 120, level: 1 },
 }
 
 const DAY: Day = { date: '2026-09-17', sessions: [], focused_seconds: 0, coins_earned: 0 }
