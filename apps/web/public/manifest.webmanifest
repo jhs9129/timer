@@ -1,0 +1,12 @@
+{
+  "name": "My Little Village",
+  "short_name": "Village",
+  "description": "몰두한 시간이 마을이 됩니다.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f1e6",
+  "theme_color": "#4f8a3a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

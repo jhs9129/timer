@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { api, type Me, type RetroResult, type Session } from './api'
 import { useIdleDetector, useInterval, useNow } from './hooks'
+import { notifyLocally } from './notifications'
 import { RetroForm } from './RetroForm'
+import { Settings } from './Settings'
 import { formatDuration, liveFocusedSeconds } from './time'
 import { TodayList } from './TodayList'
 
@@ -20,6 +22,8 @@ export function Focus({ me, refreshMe, onLogout }: Props) {
   const [lastReward, setLastReward] = useState<RetroResult['reward'] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dayVersion, setDayVersion] = useState(0)
+  const [showSettings, setShowSettings] = useState(false)
+  const [notifiedFor, setNotifiedFor] = useState<string | null>(null)
   const now = useNow(1000)
 
   const call = useCallback(async (fn: () => Promise<Session | undefined>) => {
@@ -40,19 +44,32 @@ export function Focus({ me, refreshMe, onLogout }: Props) {
   useInterval(() => void call(() => api.heartbeat(session!.id)), HEARTBEAT_MS, running)
   useIdleDetector(running, IDLE_MS, () => void call(() => api.pause(session!.id, 'idle')))
 
-  if (session === undefined) return <main>불러오는 중</main>
-
   const focused = session ? liveFocusedSeconds(session.focused_seconds, session.running_since, now) : 0
   const countdownLeft =
     session?.mode === 'countdown' && session.target_seconds ? session.target_seconds - focused : null
+
+  // Local "target reached" notification while the tab is open. The server push covers closed tabs.
+  useEffect(() => {
+    if (!session || countdownLeft === null || countdownLeft > 0) return
+    if (notifiedFor === session.id) return
+    setNotifiedFor(session.id)
+    notifyLocally('목표 시간에 도달했어요', '이제 마무리하고 회고를 남겨 보세요.')
+  }, [session, countdownLeft, notifiedFor])
+
+  if (session === undefined) return <main>불러오는 중</main>
 
   return (
     <main>
       <header>
         <strong>{me.display_name}</strong> · 코인 {me.balance} · 연속 {me.streak_days}일 · 마을 Lv.
         {me.village.level} (XP {me.village.xp}) <a href="/village">마을 가기</a>
+        <button type="button" onClick={() => setShowSettings((v) => !v)}>
+          알림 설정
+        </button>
         <button onClick={() => void onLogout()}>로그아웃</button>
       </header>
+
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       {error && <p role="alert">{error}</p>}
 

@@ -162,4 +162,24 @@ export const villageApi = {
   remove: (id: string) => request<void>(`/villages/me/placements/${id}`, { method: 'DELETE' }),
 }
 
+export interface NotificationPrefs {
+  push: boolean
+  email_weekly: boolean
+  reminder_local_time: string | null
+}
+
+export const notificationApi = {
+  vapidKey: () => request<{ key: string }>('/push/vapid-public-key'),
+  addPushSubscription: (data: {
+    endpoint: string
+    keys: { p256dh: string; auth: string }
+    user_agent?: string
+  }) => post<{ id: string }>('/push/subscriptions', data),
+  removePushSubscription: (endpoint: string) =>
+    request<void>(`/push/subscriptions?endpoint=${encodeURIComponent(endpoint)}`, { method: 'DELETE' }),
+  prefs: () => request<NotificationPrefs>('/me/notifications'),
+  patchPrefs: (data: Partial<NotificationPrefs>) =>
+    request<NotificationPrefs>('/me/notifications', { method: 'PATCH', body: JSON.stringify(data) }),
+}
+
 export const googleLoginUrl = `${API_URL}/auth/google/start`
