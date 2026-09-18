@@ -99,6 +99,8 @@ coins  = min(base × streak_multiplier(streak_days), remaining_daily_cap)
 - 아이템 카탈로그 `items`: 코드, 카테고리(building, tree, prop, ground), 가격, 크기(w×h 타일), 해금 레벨.
 - 구매: 잔액 확인 → `coin_ledger(kind=purchase, delta<0)` → `inventory` 증가. 한 트랜잭션.
 - 배치: `inventory`에서 꺼내 `placements`에 기록. 겹침·경계 검증은 서버. 철거하면 인벤토리로 돌아간다(환불 없음).
+- 레이어: `ground` 아이템은 ground 레이어, 나머지는 object 레이어. 겹침은 같은 레이어 안에서만 검사한다. 잔디 위에 나무는 되고 나무 위에 나무는 안 된다.
+- 레벨은 `village_levels`에서 계산하고 저장하지 않는다. 레벨업 시 `villages.width/height`만 새 크기로 키운다.
 - 공개 URL `/v/{slug}`는 로그인 없이 읽기 가능. 편집은 소유자만.
 - 소유자는 `owner_type ∈ {user, guild}`. M1~M4는 user만 존재하지만 스키마는 처음부터 이 형태다.
 

@@ -124,19 +124,22 @@ PK `(user_id, kind, granted_at)`.
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | id | uuid PK | |
-| code | text unique | `tree_oak_01` |
+| code | text unique | `tree_oak` |
 | name | text | |
 | category | text | `building` `tree` `prop` `ground` |
 | price | int | |
 | width, height | smallint | 타일 |
 | unlock_level | smallint | |
 | active | bool | 판매 중 여부 |
+| sort_order | smallint | 상점 정렬 |
+
+레이어는 카테고리에서 파생한다: `ground` → ground 레이어, 나머지 → object 레이어. 시드 12개는 마이그레이션 `20260918_8372ab940a8e`에 있다.
 
 ### inventory
-`(id, village_id FK, item_id FK, qty int)`, 유니크 `(village_id, item_id)`.
+`(id, village_id FK, item_id FK, qty int)`, 유니크 `(village_id, item_id)`. 사용자가 아니라 마을에 묶인다(ADR 0004).
 
 ### placements
-`(id, village_id FK, item_id FK, x, y smallint, rotation smallint, placed_at)`. 겹침 검증은 서버 로직.
+`(id, village_id FK, item_id FK, x, y smallint, rotation smallint 0..3, layer text, placed_at, updated_at)`. 겹침 검증은 같은 `layer` 안에서만, 서버 로직(`services/villages.py::_assert_free`). rotation 1·3은 footprint w/h 교환.
 
 ## 알림
 

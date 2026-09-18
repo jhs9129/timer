@@ -55,6 +55,37 @@ async def retro(client: AsyncClient, session_id: str, **body: Any) -> dict[str, 
     return data
 
 
+async def earn_coins(
+    client: AsyncClient, fake_clock: FakeClock, minutes: int, *, day_offset: int = 0
+) -> int:
+    """Earn `minutes` coins the real way: focus, stop, retro. Returns the coins granted."""
+    if day_offset:
+        fake_clock.advance(day_offset * 24 * 3600)
+    sid = await focus_and_stop(client, fake_clock, minutes)
+    result = await retro(client, sid)
+    coins: int = result["reward"]["coins"]
+    return coins
+
+
+async def buy(client: AsyncClient, item_code: str) -> dict[str, Any]:
+    res = await client.post("/shop/purchase", json={"item_code": item_code})
+    assert res.status_code == 200, res.text
+    data: dict[str, Any] = res.json()
+    return data
+
+
+async def place(
+    client: AsyncClient, item_code: str, x: int, y: int, *, rotation: int = 0
+) -> dict[str, Any]:
+    res = await client.post(
+        "/villages/me/placements",
+        json={"item_code": item_code, "x": x, "y": y, "rotation": rotation},
+    )
+    assert res.status_code == 201, res.text
+    data: dict[str, Any] = res.json()
+    return data
+
+
 async def event_types(db: AsyncSession, subject_id: str | None = None) -> list[str]:
     stmt = select(Event.event_type).order_by(Event.occurred_at, Event.ingested_at)
     if subject_id is not None:

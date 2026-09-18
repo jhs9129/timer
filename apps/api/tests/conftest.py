@@ -27,6 +27,8 @@ DOMAIN_TABLES = [
     "coin_ledger",
     "session_segments",
     "focus_sessions",
+    "placements",
+    "inventory",
     "villages",
     "events",
     "users",

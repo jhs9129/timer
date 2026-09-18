@@ -6,13 +6,16 @@ from app.models.retro import Retrospective, RetroTag, Tag
 from app.models.reward import CoinLedger, RewardConfig
 from app.models.session import FocusSession, SessionSegment
 from app.models.user import User
-from app.models.village import Village, VillageLevel
+from app.models.village import Inventory, Item, Placement, Village, VillageLevel
 
 __all__ = [
     "Base",
     "CoinLedger",
     "Event",
     "FocusSession",
+    "Inventory",
+    "Item",
+    "Placement",
     "Retrospective",
     "RetroTag",
     "RewardConfig",

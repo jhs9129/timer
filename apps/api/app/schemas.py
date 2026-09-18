@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.session import FocusSession
+from app.models.village import Item, Placement
 
 
 class SessionOut(BaseModel):
@@ -90,10 +91,11 @@ class RetroResponse(BaseModel):
     session: SessionOut
 
 
-class VillageOut(BaseModel):
+class VillageSummary(BaseModel):
     slug: str
     name: str
     xp: int
+    level: int
 
 
 class MeOut(BaseModel):
@@ -103,7 +105,105 @@ class MeOut(BaseModel):
     timezone: str
     balance: int
     streak_days: int
-    village: VillageOut
+    village: VillageSummary
+
+
+class ItemOut(BaseModel):
+    code: str
+    name: str
+    category: str
+    layer: str
+    price: int
+    width: int
+    height: int
+    unlock_level: int
+
+    @classmethod
+    def from_model(cls, item: Item) -> "ItemOut":
+        return cls(
+            code=item.code,
+            name=item.name,
+            category=item.category,
+            layer=item.layer,
+            price=item.price,
+            width=item.width,
+            height=item.height,
+            unlock_level=item.unlock_level,
+        )
+
+
+class InventoryOut(BaseModel):
+    item_code: str
+    qty: int
+
+
+class PlacementOut(BaseModel):
+    id: uuid.UUID
+    item_code: str
+    category: str
+    layer: str
+    x: int
+    y: int
+    rotation: int
+    width: int
+    height: int
+
+    @classmethod
+    def from_model(cls, placement: Placement) -> "PlacementOut":
+        w, h = placement.footprint
+        return cls(
+            id=placement.id,
+            item_code=placement.item.code,
+            category=placement.item.category,
+            layer=placement.layer,
+            x=placement.x,
+            y=placement.y,
+            rotation=placement.rotation,
+            width=w,
+            height=h,
+        )
+
+
+class PublicVillageOut(BaseModel):
+    slug: str
+    name: str
+    width: int
+    height: int
+    level: int
+    xp: int
+    placements: list[PlacementOut]
+
+
+class VillageOut(PublicVillageOut):
+    inventory: list[InventoryOut]
+    balance: int
+    next_level_xp: int | None
+
+
+class VillageRename(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+
+
+class PlacementIn(BaseModel):
+    item_code: str = Field(max_length=40)
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    rotation: int = Field(default=0, ge=0, le=3)
+
+
+class PlacementMoveIn(BaseModel):
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    rotation: int | None = Field(default=None, ge=0, le=3)
+
+
+class PurchaseIn(BaseModel):
+    item_code: str = Field(max_length=40)
+
+
+class PurchaseOut(BaseModel):
+    inventory: list[InventoryOut]
+    balance: int
 
 
 class MePatch(BaseModel):
