@@ -34,7 +34,11 @@ make dev-api    # uvicorn --reload (http://localhost:8000)
 make dev-web    # vite (http://localhost:5173)
 make check      # ruff + mypy + pytest + eslint + tsc + vitest. 커밋 전 필수
 make test       # 테스트만
+make migrate    # alembic upgrade head
+make vapid-keys # Web Push 키 쌍 출력 (한 번만, 시크릿으로 보관)
 ```
+
+알림 발송 어댑터는 `app.state.senders`에 있다. 키가 없으면 로그만 남기는 어댑터가 들어가고, 테스트는 `RecordingSender`로 바꾼다. 서비스 코드는 pywebpush나 httpx를 직접 부르지 않는다.
 
 API 테스트는 실제 Postgres를 요구한다. 로컬은 `make db-up` 후 `village_test` DB를 테스트가 스스로 만들고 마이그레이션한다. CI는 Postgres 서비스 컨테이너를 띄운다. DB 없이 "통과"하는 테스트는 없다.
 

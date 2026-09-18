@@ -36,9 +36,9 @@
 | `CORS_ORIGINS` | 콤마 구분 |
 | `SESSION_SECRET` | 쿠키 서명 (M1) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth (M1) |
-| `CRON_SECRET` | `/internal/*` 보호 (M3) |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push (M3) |
-| `RESEND_API_KEY` | 이메일 (M3) |
+| `CRON_SECRET` | `/internal/*` 보호 |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push. `make vapid-keys`로 생성. 비어 있으면 푸시는 로그만 남긴다 |
+| `RESEND_API_KEY`, `EMAIL_FROM` | 주간 요약 이메일. 비어 있으면 로그만 남긴다 |
 
 시크릿은 저장소에 넣지 않는다. `.env.example`만 커밋한다.
 
@@ -47,8 +47,11 @@
 1. Supabase 프로젝트 생성 → `DATABASE_URL` 확보(pooler 주소).
 2. Koyeb에 GitHub 연동, `apps/api/Dockerfile` 빌드, 환경 변수 등록, 헬스체크 `/health`.
 3. Cloudflare Pages에 `apps/web` 연결. 빌드 `npm run build`, 출력 `dist`, `VITE_API_URL` 설정.
-4. cron-job.org에 `POST https://<api>/internal/dispatch` 1분 주기, 헤더 `X-Cron-Secret` 등록.
+4. cron-job.org에 `POST https://<api>/internal/dispatch` 1분 주기, 헤더 `X-Cron-Secret` 등록. 이 한 호출이 timeout·abandon 배치와 알림 발송을 모두 수행한다.
 5. Google Cloud Console에서 OAuth 클라이언트 생성(무료). 리다이렉트 URI 등록.
+6. `make vapid-keys`로 VAPID 키 쌍을 만들어 Koyeb 환경 변수에 넣는다. 공개 키는 프론트가 `/push/vapid-public-key`로 받아간다.
+7. Resend에서 발신 도메인을 인증하고 `RESEND_API_KEY`, `EMAIL_FROM`을 넣는다. 도메인 인증 전에는 계정 소유자 주소로만 발송된다.
+8. 프론트와 API가 다른 사이트(예: `*.pages.dev`와 `*.koyeb.app`)면 `COOKIE_SAMESITE=none`, `COOKIE_SECURE=true`가 필요하다. 같은 상위 도메인을 쓰면 `lax`로 충분하다.
 
 ## 비용 감시
 

@@ -107,7 +107,7 @@ async def resume(session_id: uuid.UUID, db: DbSession, user: CurrentUser) -> Ses
 @router.post("/{session_id}/stop")
 async def stop(session_id: uuid.UUID, db: DbSession, user: CurrentUser) -> SessionOut:
     session = await sessions.get_owned(db, user.id, session_id)
-    sessions.stop(db, session, actor_id=user.id)
+    await sessions.stop(db, session, actor_id=user.id)
     return await _out(db, session)
 
 
@@ -118,7 +118,7 @@ async def retro(
     session = await sessions.get_owned(db, user.id, session_id)
     now = clock.now()
     if session.status == STATUS_ENDED and sessions.is_past_grace(session, user, now):
-        sessions.abandon(db, session, now=now)
+        await sessions.abandon(db, session, now=now)
         await db.commit()
         raise Conflict("session was abandoned: its day ended before the retro")
     retro_row, reward = await submit_retro(

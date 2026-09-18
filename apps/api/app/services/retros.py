@@ -4,11 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import Conflict, ValidationFailed
+from app.models.notification import KIND_RETRO_PENDING
 from app.models.retro import INTENT_MATCHES, Retrospective, RetroTag, Tag
 from app.models.session import STATUS_COMPLETED, STATUS_ENDED, FocusSession
 from app.models.user import User
 from app.services import clock
 from app.services.events import emit
+from app.services.notifications import cancel_for_ref
 from app.services.rewards import RewardResult, grant_session_reward
 from app.services.villages import add_xp, village_for_user
 
@@ -76,6 +78,13 @@ async def submit_retro(
     reward = await grant_session_reward(db, session)
     village = await village_for_user(db, user.id)
     await add_xp(db, village, session.focused_seconds // 60, actor_id=user.id)
+    await cancel_for_ref(
+        db,
+        ref_type="focus_session",
+        ref_id=session.id,
+        reason="retro_submitted",
+        kinds=(KIND_RETRO_PENDING,),
+    )
     return retro, reward
 
 

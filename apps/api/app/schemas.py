@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
@@ -219,3 +219,37 @@ class DevLoginIn(BaseModel):
 class DispatchOut(BaseModel):
     timed_out: int
     abandoned: int
+    scheduled: int
+    sent: int
+    failed: int
+
+
+class VapidKeyOut(BaseModel):
+    key: str
+
+
+class PushKeys(BaseModel):
+    p256dh: str = Field(min_length=1, max_length=256)
+    auth: str = Field(min_length=1, max_length=64)
+
+
+class PushSubscriptionIn(BaseModel):
+    endpoint: str = Field(min_length=1, max_length=1024)
+    keys: PushKeys
+    user_agent: str | None = Field(default=None, max_length=256)
+
+
+class PushSubscriptionOut(BaseModel):
+    id: uuid.UUID
+
+
+class NotificationPrefsOut(BaseModel):
+    push: bool
+    email_weekly: bool
+    reminder_local_time: time | None
+
+
+class NotificationPrefsPatch(BaseModel):
+    push: bool | None = None
+    email_weekly: bool | None = None
+    reminder_local_time: time | None = None

@@ -35,6 +35,18 @@ class Settings(BaseSettings):
     cron_secret: str = "dev-cron-secret"
     dispatch_batch_size: int = 200
 
+    # notifications (leave keys empty in development: senders then log instead of sending)
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
+    resend_api_key: str = ""
+    email_from: str = "My Little Village <noreply@example.com>"
+    retro_pending_delay_seconds: int = 30 * 60
+    notification_max_attempts: int = 5
+    reminder_window_minutes: int = 10
+    weekly_summary_weekday: int = 0  # Monday
+    weekly_summary_hour: int = 8
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:

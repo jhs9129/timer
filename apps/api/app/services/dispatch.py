@@ -13,10 +13,12 @@ from app.models.session import (
 )
 from app.models.user import User
 from app.services import clock
+from app.services.notifications import deliver_due, schedule_recurring
+from app.services.senders import Senders
 from app.services.sessions import abandon, apply_timeout, today_for
 
 
-async def run_dispatch(db: AsyncSession) -> dict[str, int]:
+async def run_dispatch(db: AsyncSession, senders: Senders) -> dict[str, int]:
     """One cron tick. Must finish well inside the 30s cron timeout."""
     settings = get_settings()
     now = clock.now()
@@ -52,8 +54,17 @@ async def run_dispatch(db: AsyncSession) -> dict[str, int]:
     abandoned = 0
     for session, user in candidates.all():
         if session.local_date < today_for(user, now):
-            abandon(db, session, now=now)
+            await abandon(db, session, now=now)
             abandoned += 1
 
+    scheduled = await schedule_recurring(db, now, limit)
     await db.flush()
-    return {"timed_out": timed_out, "abandoned": abandoned}
+    sent, failed = await deliver_due(db, senders, now, limit)
+    await db.flush()
+    return {
+        "timed_out": timed_out,
+        "abandoned": abandoned,
+        "scheduled": scheduled,
+        "sent": sent,
+        "failed": failed,
+    }

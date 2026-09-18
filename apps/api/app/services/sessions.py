@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.errors import Conflict, NotFound, ValidationFailed
+from app.models.notification import CHANNEL_PUSH, KIND_COUNTDOWN, KIND_RETRO_PENDING
 from app.models.session import (
     ACTIVE_STATUSES,
     END_STOP,
@@ -21,7 +22,7 @@ from app.models.session import (
     SessionSegment,
 )
 from app.models.user import User
-from app.services import clock
+from app.services import clock, notifications
 from app.services.events import emit
 from app.services.localdate import local_date_for
 
@@ -134,6 +135,21 @@ async def start(
             "has_intent": session.intent is not None,
         },
     )
+    if session.target_seconds:
+        notifications.schedule(
+            db,
+            user_id=user.id,
+            kind=KIND_COUNTDOWN,
+            channel=CHANNEL_PUSH,
+            due_at=now + timedelta(seconds=session.target_seconds),
+            payload={
+                "title": "목표 시간에 도달했어요",
+                "body": "이제 마무리하고 회고를 남겨 보세요.",
+                "url": "/",
+            },
+            ref_type="focus_session",
+            ref_id=session.id,
+        )
     return session
 
 
@@ -193,7 +209,7 @@ def resume(db: AsyncSession, session: FocusSession, *, actor_id: uuid.UUID) -> N
     )
 
 
-def stop(db: AsyncSession, session: FocusSession, *, actor_id: uuid.UUID) -> None:
+async def stop(db: AsyncSession, session: FocusSession, *, actor_id: uuid.UUID) -> None:
     if session.status not in ACTIVE_STATUSES:
         raise Conflict("session is not active")
     now = clock.now()
@@ -216,9 +232,30 @@ def stop(db: AsyncSession, session: FocusSession, *, actor_id: uuid.UUID) -> Non
             "segment_count": len(session.segments),
         },
     )
+    await notifications.cancel_for_ref(
+        db,
+        ref_type="focus_session",
+        ref_id=session.id,
+        reason="session_stopped",
+        kinds=(KIND_COUNTDOWN,),
+    )
+    notifications.schedule(
+        db,
+        user_id=session.user_id,
+        kind=KIND_RETRO_PENDING,
+        channel=CHANNEL_PUSH,
+        due_at=now + timedelta(seconds=get_settings().retro_pending_delay_seconds),
+        payload={
+            "title": "회고를 남겨 주세요",
+            "body": f"{session.focused_seconds // 60}분 몰두했어요. 어땠는지 한 번만 눌러 주세요.",
+            "url": "/",
+        },
+        ref_type="focus_session",
+        ref_id=session.id,
+    )
 
 
-def abandon(db: AsyncSession, session: FocusSession, *, now: datetime) -> None:
+async def abandon(db: AsyncSession, session: FocusSession, *, now: datetime) -> None:
     last_status = session.status
     segment = session.open_segment
     if segment is not None:
@@ -235,6 +272,9 @@ def abandon(db: AsyncSession, session: FocusSession, *, now: datetime) -> None:
         actor_id=None,
         payload={"last_status": last_status, "focused_seconds": session.focused_seconds},
         occurred_at=now,
+    )
+    await notifications.cancel_for_ref(
+        db, ref_type="focus_session", ref_id=session.id, reason="session_abandoned"
     )
 
 

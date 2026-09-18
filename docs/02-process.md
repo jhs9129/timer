@@ -113,8 +113,11 @@ coins  = min(base × streak_multiplier(streak_days), remaining_daily_cap)
 | 일일 리마인더 | Web Push | 사용자 설정 시각. 기본 off |
 | 주간 요약 | 이메일 | 매주 월요일 08:00 사용자 TZ |
 
-- 서버 푸시 디스패치: 외부 크론이 1분마다 `POST /internal/dispatch` (헤더 `X-Cron-Secret`). 서버는 `due_at <= now AND sent_at IS NULL`을 처리하고 결과를 기록한다.
-- 세션이 stop되면 관련 예약은 취소(`cancelled_at`)한다.
+- 서버 푸시 디스패치: 외부 크론이 1분마다 `POST /internal/dispatch` (헤더 `X-Cron-Secret`). 서버는 `due_at <= now AND sent_at IS NULL AND cancelled_at IS NULL AND attempts < 5`를 처리하고 결과를 기록한다.
+- 세션이 stop되면 카운트다운 예약을 취소하고 회고 대기 알림을 예약한다. 회고를 내면 회고 대기 알림을 취소한다. abandon되면 전부 취소한다.
+- 일일 리마인더와 주간 요약은 크론 tick이 사용자 로컬 시각을 보고 10분 창 안에서 만든다. `dedupe_key`로 하루·주에 한 번만 생긴다.
+- 탭이 열려 있으면 클라이언트도 알림을 띄우므로 같은 내용을 두 번 볼 수 있다. 중복은 허용한다. 못 보는 것보다 낫다.
+- 푸시 동의를 철회하면 구독을 모두 revoke하고 대기 중인 push 알림을 취소한다.
 - iOS Safari는 홈 화면 추가(PWA) 상태에서만 푸시가 온다. 푸시 권한 요청 전에 이 안내를 보여준다.
 
 ## 6. API 스케치 (M1 범위)

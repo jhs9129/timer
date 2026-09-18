@@ -1,4 +1,4 @@
-.PHONY: setup db-up db-down dev-api dev-web check check-api check-web test test-api test-web migrate
+.PHONY: setup db-up db-down dev-api dev-web check check-api check-web test test-api test-web migrate vapid-keys
 
 API := apps/api
 WEB := apps/web
@@ -22,6 +22,9 @@ dev-web:
 
 migrate:
 	cd $(API) && uv run alembic upgrade head
+
+vapid-keys:
+	cd $(API) && uv run python scripts/gen_vapid.py
 
 check: check-api check-web
 

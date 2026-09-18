@@ -16,15 +16,17 @@
 | timezone | text | IANA. 기본 브라우저 감지값 |
 | created_at | timestamptz | |
 
+`users.reminder_local_time time null`: 일일 리마인더 로컬 시각. null이면 꺼짐.
+
 ### consents
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | user_id | uuid FK | |
-| kind | text | `analytics_basic`, `email_weekly`, 향후 `desktop_activity` 등 |
+| kind | text | `push`, `email_weekly`. 향후 `desktop_activity` 등 |
 | granted_at | timestamptz | |
 | revoked_at | timestamptz null | |
 
-PK `(user_id, kind, granted_at)`.
+PK `(user_id, kind, granted_at)`. 현재 상태 = 해당 kind의 최신 행이 `revoked_at IS NULL`.
 
 ## 세션
 
@@ -152,15 +154,18 @@ PK `(user_id, kind, granted_at)`.
 | id | uuid PK | |
 | user_id | uuid FK | |
 | kind | text | `countdown_reached` `retro_pending` `daily_reminder` `weekly_summary` |
+| channel | text | `push` `email` |
 | due_at | timestamptz | |
-| payload | jsonb | |
-| ref_type, ref_id | text, uuid null | 세션 등 |
+| payload | jsonb | push: title/body/url. email: summary |
+| ref_type, ref_id | text, uuid null | 세션 등. 취소 조회용 |
+| dedupe_key | text unique null | `daily:{user}:{date}`, `weekly:{user}:{year}-W{week}` |
 | sent_at | timestamptz null | |
 | cancelled_at | timestamptz null | |
-| attempts | smallint | |
+| attempts | smallint | 5회 후 중단 |
 | last_error | text null | |
+| created_at | timestamptz | |
 
-인덱스 `(due_at) WHERE sent_at IS NULL AND cancelled_at IS NULL`.
+인덱스 `(due_at) WHERE sent_at IS NULL AND cancelled_at IS NULL`, `(ref_type, ref_id)`.
 
 ## 이벤트
 
@@ -191,7 +196,11 @@ PK `(user_id, kind, granted_at)`.
 | `reward.granted` | 보상 | coins, base, multiplier, cap_hit |
 | `item.purchased` | 구매 | item_code, price |
 | `placement.changed` | 배치/이동/철거 | action, item_code, x, y |
-| `notification.sent` | 디스패치 | kind, channel, ok |
+| `notification.scheduled` | 예약 | kind, channel, due_at |
+| `notification.cancelled` | 취소 | kind, reason |
+| `notification.sent` | 디스패치 | kind, channel, ok, error |
+| `push_subscription.changed` | 구독 변경 | action: add/remove/revoke |
+| `village.created` / `village.xp_added` / `village.level_up` | 마을 | slug / minutes, xp / from_level, to_level |
 | `reward_config.changed` | 설정 변경 | before, after |
 | `consent.changed` | 동의 변경 | kind, granted |
 

@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, internal, me, sessions, shop, villages
+from app.api import auth, internal, me, notifications, sessions, shop, villages
 from app.config import get_settings
 from app.db import check_db, engine
 from app.errors import install_error_handlers
+from app.services.senders import build_senders
 
 
 @asynccontextmanager
@@ -27,11 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 install_error_handlers(app)
+# Delivery adapters live on app.state so tests can swap in recorders.
+app.state.senders = build_senders(settings)
 app.include_router(auth.router)
 app.include_router(me.router)
 app.include_router(sessions.router)
 app.include_router(villages.router)
 app.include_router(shop.router)
+app.include_router(notifications.router)
 app.include_router(internal.router)
 
 

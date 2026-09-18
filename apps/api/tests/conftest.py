@@ -17,6 +17,7 @@ from app.main import app
 from app.models.user import User
 from app.services import clock
 from app.services.auth import create_user, sign_user_id
+from app.services.senders import RecordingSender, Senders
 
 API_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,6 +26,9 @@ DOMAIN_TABLES = [
     "tags",
     "retrospectives",
     "coin_ledger",
+    "scheduled_notifications",
+    "push_subscriptions",
+    "consents",
     "session_segments",
     "focus_sessions",
     "placements",
@@ -116,6 +120,16 @@ async def user(fake_clock: FakeClock) -> User:
         )
         await session.commit()
         return created
+
+
+@pytest.fixture(autouse=True)
+def senders() -> Iterator[Senders]:
+    """Every test runs against recording senders; nothing leaves the process."""
+    original = app.state.senders
+    recording = Senders(push=RecordingSender(), email=RecordingSender())
+    app.state.senders = recording
+    yield recording
+    app.state.senders = original
 
 
 @pytest.fixture
